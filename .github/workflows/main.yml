@@ -16,21 +16,19 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '22.1.0'  # Updated Node.js version
+          node-version: '16.x'  # Updated Node.js version
 
-      - name: Install Dependencies
-        run: npm install
-
-      - name: Create package-lock.json if it doesn't exist
-        run: npm i --package-lock-only
+      - name: Install htmlhint
+        run: npm install -g htmlhint
 
       - name: Lint HTML
-        run: |
-          npm install -g htmlhint
-          htmlhint index.html
+        run: htmlhint index.html
 
-      - name: Security Scan with npm audit
-        run: npm audit
+      - name: Install retire.js
+        run: npm install -g retire
+
+      - name: Security Scan with retire.js
+        run: retire
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -40,9 +38,7 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Sync S3 Bucket
-        run: |
-          aws s3 sync . s3://your-s3-bucket-name --exclude ".git/*" --delete
+        run: aws s3 sync . s3://your-s3-bucket-name --exclude ".git/*" --delete
 
       - name: Invalidate CloudFront
-        run: |
-          aws cloudfront create-invalidation --distribution-id YOUR_CLOUDFRONT_DISTRIBUTION_ID --paths "/*"
+        run: aws cloudfront create-invalidation --distribution-id YOUR_CLOUDFRONT_DISTRIBUTION_ID --paths "/*"
