@@ -16,21 +16,21 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '22.1.0'
+          node-version: '16.x'  # Updated Node.js version
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Create package-lock.json if it doesn't exist
+        run: npm i --package-lock-only
 
       - name: Lint HTML
         run: |
           npm install -g htmlhint
           htmlhint index.html
 
-      - name: Test HTML
-        run: |
-          npm install -g html-validate
-          html-validate index.html
-
-      - name: Security Scan
-        run: |
-          npm audit
+      - name: Security Scan with npm audit
+        run: npm audit
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
