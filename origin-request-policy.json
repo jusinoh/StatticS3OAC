@@ -1,0 +1,13 @@
+{
+  "Name": "MyOriginRequestPolicy",
+  "Comment": "Policy for S3 bucket",
+  "HeadersConfig": {
+    "HeaderBehavior": "none"
+  },
+  "CookiesConfig": {
+    "CookieBehavior": "none"
+  },
+  "QueryStringsConfig": {
+    "QueryStringBehavior": "none"
+  }
+}
