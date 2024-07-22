@@ -49,6 +49,10 @@ jobs:
           aws s3api create-bucket --bucket ${{ secrets.S3_BUCKET_NAME }} --region us-east-1
           aws s3api put-bucket-encryption --bucket ${{ secrets.S3_BUCKET_NAME }} --server-side-encryption-configuration '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}'
 
+      - name: Enable bucket versioning
+        run: |
+          aws s3api put-bucket-versioning --bucket ${{ secrets.S3_BUCKET_NAME }} --versioning-configuration Status=Enabled
+
       - name: Enable Static Website Hosting
         run: |
           aws s3api put-bucket-website --bucket ${{ secrets.S3_BUCKET_NAME }} --website-configuration '{
@@ -87,7 +91,7 @@ jobs:
             "Comment": "CloudFront Distribution for S3 bucket",
             "DefaultCacheBehavior": {
               "TargetOriginId": "S3-${bucket_name}",
-              "ViewerProtocolPolicy": "redirect-to-https",
+              "ViewerProtocolPolicy": "allow-all",
               "AllowedMethods": {
                 "Quantity": 2,
                 "Items": ["GET", "HEAD"],
@@ -113,14 +117,21 @@ jobs:
               "Items": [
                 {
                   "Id": "S3-${bucket_name}",
-                  "DomainName": "${bucket_name}.s3.amazonaws.com",
-                  "S3OriginConfig": {
-                    "OriginAccessIdentity": ""
+                  "DomainName": "${bucket_name}.s3-website-us-east-1.amazonaws.com",
+                  "CustomOriginConfig": {
+                    "HTTPPort": 80,
+                    "HTTPSPort": 80,
+                    "OriginProtocolPolicy": "http-only",
+                    "OriginSslProtocols": {
+                      "Quantity": 3,
+                      "Items": ["TLSv1.2", "TLSv1.1", "TLSv1"]
+                    }
                   }
                 }
               ]
             },
-            "Enabled": true
+            "Enabled": true,
+            "HttpVersion": "http2and3"
           }
           EOF
           )
