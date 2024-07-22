@@ -71,13 +71,42 @@ jobs:
       - name: Create Cache Policy
         id: create-cache-policy
         run: |
-          cache_policy_id=$(aws cloudfront create-cache-policy --cache-policy-config file://cache-policy.json | jq -r '.CachePolicy.Id')
+          cache_policy_id=$(aws cloudfront create-cache-policy --cache-policy-config '{
+            "Name": "MyCachePolicy",
+            "DefaultTTL": 86400,
+            "MaxTTL": 31536000,
+            "MinTTL": 0,
+            "ParametersInCacheKeyAndForwardedToOrigin": {
+              "EnableAcceptEncodingGzip": true,
+              "CookiesConfig": {
+                "CookieBehavior": "none"
+              },
+              "HeadersConfig": {
+                "HeaderBehavior": "none"
+              },
+              "QueryStringsConfig": {
+                "QueryStringBehavior": "none"
+              }
+            }
+          }' | jq -r '.CachePolicy.Id')
           echo "cache_policy_id=$cache_policy_id" >> $GITHUB_ENV
 
       - name: Create Origin Request Policy
         id: create-origin-request-policy
         run: |
-          origin_request_policy_id=$(aws cloudfront create-origin-request-policy --origin-request-policy-config file://origin-request-policy.json | jq -r '.OriginRequestPolicy.Id')
+          origin_request_policy_id=$(aws cloudfront create-origin-request-policy --origin-request-policy-config '{
+            "Name": "MyOriginRequestPolicy",
+            "Comment": "Policy for S3 bucket",
+            "HeadersConfig": {
+              "HeaderBehavior": "none"
+            },
+            "CookiesConfig": {
+              "CookieBehavior": "none"
+            },
+            "QueryStringsConfig": {
+              "QueryStringBehavior": "none"
+            }
+          }' | jq -r '.OriginRequestPolicy.Id')
           echo "origin_request_policy_id=$origin_request_policy_id" >> $GITHUB_ENV
 
       - name: Create CloudFront distribution
@@ -91,7 +120,7 @@ jobs:
             "Comment": "CloudFront Distribution for S3 bucket",
             "DefaultCacheBehavior": {
               "TargetOriginId": "S3-${bucket_name}",
-              "ViewerProtocolPolicy": "allow-all",
+              "ViewerProtocolPolicy": "redirect-to-https",
               "AllowedMethods": {
                 "Quantity": 2,
                 "Items": ["GET", "HEAD"],
@@ -108,15 +137,9 @@ jobs:
               "Items": [
                 {
                   "Id": "S3-${bucket_name}",
-                  "DomainName": "${bucket_name}.s3-website-us-east-1.amazonaws.com",
-                  "CustomOriginConfig": {
-                    "HTTPPort": 80,
-                    "HTTPSPort": 80,
-                    "OriginProtocolPolicy": "http-only",
-                    "OriginSslProtocols": {
-                      "Quantity": 3,
-                      "Items": ["TLSv1.2", "TLSv1.1", "TLSv1"]
-                    }
+                  "DomainName": "${bucket_name}.s3.amazonaws.com",
+                  "S3OriginConfig": {
+                    "OriginAccessIdentity": ""
                   }
                 }
               ]
