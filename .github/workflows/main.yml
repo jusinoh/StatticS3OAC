@@ -30,87 +30,87 @@ jobs:
       - name: Security Scan with retire.js
         run: retire
 
-    - name: Install AWS CLI
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y awscli
+      - name: Install AWS CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y awscli
 
-    - name: Configure AWS credentials
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      run: |
-        aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
-        aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
-        aws configure set default.region us-east-1
+      - name: Configure AWS credentials
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+          aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+          aws configure set default.region us-east-1
 
-    - name: Create S3 bucket with encryption
-      run: |
-        aws s3api create-bucket --bucket ${{ secrets.S3_BUCKET_NAME }} --region us-east-1
-        aws s3api put-bucket-encryption --bucket ${{ secrets.S3_BUCKET_NAME }} --server-side-encryption-configuration '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}'
+      - name: Create S3 bucket with encryption
+        run: |
+          aws s3api create-bucket --bucket ${{ secrets.S3_BUCKET_NAME }} --region us-east-1
+          aws s3api put-bucket-encryption --bucket ${{ secrets.S3_BUCKET_NAME }} --server-side-encryption-configuration '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}'
 
-    - name: Upload index.html to S3
-      run: |
-        aws s3 cp index.html s3://${{ secrets.S3_BUCKET_NAME }}/index.html --acl public-read
+      - name: Upload index.html to S3
+        run: |
+          aws s3 cp index.html s3://${{ secrets.S3_BUCKET_NAME }}/index.html --acl public-read
 
-    - name: Create Cache Policy
-      id: create-cache-policy
-      run: |
-        cache_policy_id=$(aws cloudfront create-cache-policy --cache-policy-config file://cache-policy.json | jq -r '.CachePolicy.Id')
-        echo "cache_policy_id=$cache_policy_id" >> $GITHUB_ENV
+      - name: Create Cache Policy
+        id: create-cache-policy
+        run: |
+          cache_policy_id=$(aws cloudfront create-cache-policy --cache-policy-config file://cache-policy.json | jq -r '.CachePolicy.Id')
+          echo "cache_policy_id=$cache_policy_id" >> $GITHUB_ENV
 
-    - name: Create Origin Request Policy
-      id: create-origin-request-policy
-      run: |
-        origin_request_policy_id=$(aws cloudfront create-origin-request-policy --origin-request-policy-config file://origin-request-policy.json | jq -r '.OriginRequestPolicy.Id')
-        echo "origin_request_policy_id=$origin_request_policy_id" >> $GITHUB_ENV
+      - name: Create Origin Request Policy
+        id: create-origin-request-policy
+        run: |
+          origin_request_policy_id=$(aws cloudfront create-origin-request-policy --origin-request-policy-config file://origin-request-policy.json | jq -r '.OriginRequestPolicy.Id')
+          echo "origin_request_policy_id=$origin_request_policy_id" >> $GITHUB_ENV
 
-    - name: Create CloudFront distribution
-      run: |
-        bucket_name=${{ secrets.S3_BUCKET_NAME }}
-        cache_policy_id=${{ env.cache_policy_id }}
-        origin_request_policy_id=${{ env.origin_request_policy_id }}
-        cloudfront_config=$(cat <<-EOF
-        {
-          "CallerReference": "$(date +%s)",
-          "Comment": "CloudFront Distribution for S3 bucket",
-          "DefaultCacheBehavior": {
-            "TargetOriginId": "S3-${bucket_name}",
-            "ViewerProtocolPolicy": "redirect-to-https",
-            "AllowedMethods": {
-              "Quantity": 2,
-              "Items": ["GET", "HEAD"],
-              "CachedMethods": {
+      - name: Create CloudFront distribution
+        run: |
+          bucket_name=${{ secrets.S3_BUCKET_NAME }}
+          cache_policy_id=${{ env.cache_policy_id }}
+          origin_request_policy_id=${{ env.origin_request_policy_id }}
+          cloudfront_config=$(cat <<-EOF
+          {
+            "CallerReference": "$(date +%s)",
+            "Comment": "CloudFront Distribution for S3 bucket",
+            "DefaultCacheBehavior": {
+              "TargetOriginId": "S3-${bucket_name}",
+              "ViewerProtocolPolicy": "redirect-to-https",
+              "AllowedMethods": {
                 "Quantity": 2,
-                "Items": ["GET", "HEAD"]
-              }
-            },
-            "ForwardedValues": {
-              "QueryString": false,
-              "Cookies": {
-                "Forward": "none"
-              }
-            },
-            "MinTTL": 0,
-            "DefaultTTL": 86400,
-            "MaxTTL": 31536000,
-            "CachePolicyId": "${cache_policy_id}",
-            "OriginRequestPolicyId": "${origin_request_policy_id}"
-          },
-          "Origins": {
-            "Quantity": 1,
-            "Items": [
-              {
-                "Id": "S3-${bucket_name}",
-                "DomainName": "${bucket_name}.s3.amazonaws.com",
-                "S3OriginConfig": {
-                  "OriginAccessIdentity": ""
+                "Items": ["GET", "HEAD"],
+                "CachedMethods": {
+                  "Quantity": 2,
+                  "Items": ["GET", "HEAD"]
                 }
-              }
-            ]
-          },
-          "Enabled": true
-        }
-        EOF
-        )
-        aws cloudfront create-distribution --distribution-config "$cloudfront_config"
+              },
+              "ForwardedValues": {
+                "QueryString": false,
+                "Cookies": {
+                  "Forward": "none"
+                }
+              },
+              "MinTTL": 0,
+              "DefaultTTL": 86400,
+              "MaxTTL": 31536000,
+              "CachePolicyId": "${cache_policy_id}",
+              "OriginRequestPolicyId": "${origin_request_policy_id}"
+            },
+            "Origins": {
+              "Quantity": 1,
+              "Items": [
+                {
+                  "Id": "S3-${bucket_name}",
+                  "DomainName": "${bucket_name}.s3.amazonaws.com",
+                  "S3OriginConfig": {
+                    "OriginAccessIdentity": ""
+                  }
+                }
+              ]
+            },
+            "Enabled": true
+          }
+          EOF
+          )
+          aws cloudfront create-distribution --distribution-config "$cloudfront_config"
