@@ -30,8 +30,7 @@ jobs:
 
       - name: Security Scan
         run: |
-          npm install -g snyk
-          snyk test
+          npm audit
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
