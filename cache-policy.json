@@ -1,0 +1,18 @@
+{
+  "Name": "MyCachePolicy",
+  "DefaultTTL": 86400,
+  "MaxTTL": 31536000,
+  "MinTTL": 0,
+  "ParametersInCacheKeyAndForwardedToOrigin": {
+    "EnableAcceptEncodingGzip": true,
+    "CookiesConfig": {
+      "CookieBehavior": "none"
+    },
+    "HeadersConfig": {
+      "HeaderBehavior": "none"
+    },
+    "QueryStringsConfig": {
+      "QueryStringBehavior": "none"
+    }
+  }
+}
