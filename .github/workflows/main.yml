@@ -100,12 +100,6 @@ jobs:
                   "Items": ["GET", "HEAD"]
                 }
               },
-              "ForwardedValues": {
-                "QueryString": false,
-                "Cookies": {
-                  "Forward": "none"
-                }
-              },
               "CachePolicyId": "${cache_policy_id}",
               "OriginRequestPolicyId": "${origin_request_policy_id}"
             },
