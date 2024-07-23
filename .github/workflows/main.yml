@@ -25,7 +25,7 @@ jobs:
         run: htmlhint index.html
 
       - name: Security Scan with KICS
-        run: docker run -t -v "$(pwd)":/path checkmarx/kics:latest scan -p /path/index.html -o /path/output.json && cat output.json
+        run: docker run -t -v "$(pwd)":/path checkmarx/kics:latest scan -p /path/index.html -o /path/
 
       - name: Install AWS CLI
         run: |
