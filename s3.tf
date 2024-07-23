@@ -4,35 +4,19 @@ provider "aws" {
 
 resource "aws_s3_bucket" "b" {
   bucket = "testtekbuckethaqui"
+}
 
-  website {
-    index_document = "index.html"
-    error_document = "error.html"
-  }
+resource "aws_s3_bucket_website_configuration" "example" {
+  bucket = aws_s3_bucket.b.id
 
-  versioning {
-    enabled = true
-  }
-
-  server_side_encryption_configuration {
-    rule {
-      apply_server_side_encryption_by_default {
-        sse_algorithm = "AES256"
-      }
-    }
+  index_document {
+    suffix = "index.html"
   }
 }
 
 resource "aws_s3_bucket_acl" "b_acl" {
   bucket = aws_s3_bucket.b.id
   acl    = "private"
-}
-
-resource "aws_s3_bucket_object" "index" {
-  bucket = aws_s3_bucket.b.bucket
-  key    = "index.html"
-  source = "index.html"
-  acl    = "public-read"
 }
 
 locals {
@@ -121,8 +105,15 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
     viewer_protocol_policy = "redirect-to-https"
   }
 
+  restrictions {
+    geo_restriction {
+      restriction_type = none
+    }
+  }
+
   viewer_certificate {
     cloudfront_default_certificate = true
+    minimum_protocol_version = TLSv2
   }
 }
 
