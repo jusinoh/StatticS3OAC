@@ -117,7 +117,7 @@ jobs:
           cloudfront_config=$(cat <<-EOF
           {
             "CallerReference": "$(date +%s)",
-            "Comment": "TekTest",
+            "Comment": "CloudFront Distribution for S3 bucket",
             "DefaultCacheBehavior": {
               "TargetOriginId": "S3-${bucket_name}",
               "ViewerProtocolPolicy": "redirect-to-https",
@@ -129,12 +129,17 @@ jobs:
                   "Items": ["GET", "HEAD"]
                 }
               },
-              "CachePolicyId": "${cache_policy_id}",
-              "OriginRequestPolicyId": "${origin_request_policy_id}",
+              "ForwardedValues": {
+                "QueryString": false,
+                "Cookies": {
+                  "Forward": "none"
+                }
+              },
               "MinTTL": 0,
               "DefaultTTL": 86400,
               "MaxTTL": 31536000,
-              "CachePolicyId": "${cache_policy_id}"
+              "CachePolicyId": "${cache_policy_id}",
+              "OriginRequestPolicyId": "${origin_request_policy_id}"
             },
             "Origins": {
               "Quantity": 1,
@@ -148,8 +153,7 @@ jobs:
                 }
               ]
             },
-            "Enabled": true,
-            "HttpVersion": "http2and3"
+            "Enabled": true
           }
           EOF
           )
