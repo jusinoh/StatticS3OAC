@@ -24,11 +24,19 @@ jobs:
       - name: Lint HTML
         run: htmlhint index.html
 
-      - name: Install retire.js
-        run: npm install -g retire
+      - name: Install KICS
+        run: |
+          curl -sfL https://raw.githubusercontent.com/Checkmarx/kics/master/install.sh | sh
 
-      - name: Security Scan with retire.js
-        run: retire
+      - name: Run KICS scan
+        run: |
+          ./kics scan -p . --output-path results
+
+      - name: Upload KICS scan results
+        uses: actions/upload-artifact@v2
+        with:
+          name: kics-scan-results
+          path: results
 
       - name: Install AWS CLI
         run: |
@@ -117,7 +125,7 @@ jobs:
           cloudfront_config=$(cat <<-EOF
           {
             "CallerReference": "$(date +%s)",
-            "Comment": "CloudFront Distribution for S3 bucket",
+            "Comment": "TekTest",
             "DefaultCacheBehavior": {
               "TargetOriginId": "S3-${bucket_name}",
               "ViewerProtocolPolicy": "redirect-to-https",
@@ -130,7 +138,11 @@ jobs:
                 }
               },
               "CachePolicyId": "${cache_policy_id}",
-              "OriginRequestPolicyId": "${origin_request_policy_id}"
+              "OriginRequestPolicyId": "${origin_request_policy_id}",
+              "MinTTL": 0,
+              "DefaultTTL": 86400,
+              "MaxTTL": 31536000,
+              "CachePolicyId": "${cache_policy_id}"
             },
             "Origins": {
               "Quantity": 1,
