@@ -24,19 +24,11 @@ jobs:
       - name: Lint HTML
         run: htmlhint index.html
 
-      - name: Install KICS
-        run: |
-          curl -sfL https://raw.githubusercontent.com/Checkmarx/kics/master/install.sh | sh
+      - name: Install retire.js
+        run: npm install -g retire
 
-      - name: Run KICS scan
-        run: |
-          ./kics scan -p . --output-path results
-
-      - name: Upload KICS scan results
-        uses: actions/upload-artifact@v2
-        with:
-          name: kics-scan-results
-          path: results
+      - name: Security Scan with retire.js
+        run: retire
 
       - name: Install AWS CLI
         run: |
