@@ -24,29 +24,8 @@ jobs:
       - name: Lint HTML
         run: htmlhint index.html
 
-      - name: Install retire.js
-        run: npm install -g retire
-
-      - name: Security Scan with retire.js
-        run: retire
-
-      - name: Install Arachni
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y wget
-          wget https://github.com/Arachni/arachni/releases/download/v1.5.1/arachni-1.5.1-0.6.1-linux-x86_64.tar.gz
-          tar -xzvf arachni-1.5.1-0.6.1-linux-x86_64.tar.gz
-
-      - name: Run Arachni Scan
-        run: |
-          ./arachni-1.5.1-0.6.1/bin/arachni http://localhost/index.html --report-save-path=./arachni_report.afr
-          ./arachni-1.5.1-0.6.1/bin/arachni_reporter ./arachni_report.afr --reporter=html:output=./arachni_report.html
-
-      - name: Upload Arachni Scan Report
-        uses: actions/upload-artifact@v2
-        with:
-          name: arachni-scan-report
-          path: ./arachni_report.html
+      - name: Security Scan with KICS
+        run: docker run -t -v "$(pwd)":/path checkmarx/kics:latest scan -p /path/index.html -o /path/output.json && cat output.json
 
       - name: Install AWS CLI
         run: |
