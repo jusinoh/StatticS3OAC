@@ -4,7 +4,7 @@ provider "aws" {
 
 resource "aws_s3_bucket" "b" {
   bucket = "testtekbuckethaqui"
-  acl    = "private"
+  aws_s3_bucket_acl = "public-read"
 }
 
 resource "aws_s3_bucket_website_configuration" "tekb" {
@@ -108,13 +108,13 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
 
   restrictions {
     geo_restriction {
-      restriction_type = none
+      restriction_type = "none"
     }
   }
 
   viewer_certificate {
     cloudfront_default_certificate = true
-    minimum_protocol_version = TLSv2
+    minimum_protocol_version = "TLSv1.2_2021"
   }
 }
 
