@@ -4,6 +4,7 @@ provider "aws" {
 
 resource "aws_s3_bucket" "b" {
   bucket = "testtekbuckethaqui"
+  acl    = "public-read"
 }
 
 resource "aws_s3_bucket_website_configuration" "example" {
