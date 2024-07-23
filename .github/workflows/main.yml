@@ -24,13 +24,13 @@ jobs:
       - name: Lint HTML
         run: htmlhint index.html
 
-      - name: Security Scan with KICS
-        run: docker run -t -v "$(pwd)":/path checkmarx/kics:latest scan -p /path/index.html -o /path/
-
       - name: Install AWS CLI
         run: |
           sudo apt-get update
           sudo apt-get install -y awscli
+
+      - name: Security Scan with KICS
+        run: docker run -t -v "$(pwd)":/path checkmarx/kics:latest scan -p /path -o "/path/"
 
       - name: Configure AWS credentials
         env:
@@ -41,117 +41,5 @@ jobs:
           aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
           aws configure set default.region us-east-1
 
-      - name: Create S3 bucket with encryption
-        run: |
-          aws s3api create-bucket --bucket ${{ secrets.S3_BUCKET_NAME }} --region us-east-1
-          aws s3api put-bucket-encryption --bucket ${{ secrets.S3_BUCKET_NAME }} --server-side-encryption-configuration '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}'
-
-      - name: Enable bucket versioning
-        run: |
-          aws s3api put-bucket-versioning --bucket ${{ secrets.S3_BUCKET_NAME }} --versioning-configuration Status=Enabled
-
-      - name: Enable Static Website Hosting
-        run: |
-          aws s3api put-bucket-website --bucket ${{ secrets.S3_BUCKET_NAME }} --website-configuration '{
-            "IndexDocument": {
-              "Suffix": "index.html"
-            },
-            "ErrorDocument": {
-              "Key": "error.html"
-            }
-          }'
-
-      - name: Upload index.html to S3
-        run: |
-          aws s3 cp index.html s3://${{ secrets.S3_BUCKET_NAME }}/index.html
-
-      - name: Create Cache Policy
-        id: create-cache-policy
-        run: |
-          cache_policy_id=$(aws cloudfront create-cache-policy --cache-policy-config '{
-            "Name": "MyCachePolicy",
-            "DefaultTTL": 86400,
-            "MaxTTL": 31536000,
-            "MinTTL": 0,
-            "ParametersInCacheKeyAndForwardedToOrigin": {
-              "EnableAcceptEncodingGzip": true,
-              "CookiesConfig": {
-                "CookieBehavior": "none"
-              },
-              "HeadersConfig": {
-                "HeaderBehavior": "none"
-              },
-              "QueryStringsConfig": {
-                "QueryStringBehavior": "none"
-              }
-            }
-          }' | jq -r '.CachePolicy.Id')
-          echo "cache_policy_id=$cache_policy_id" >> $GITHUB_ENV
-
-      - name: Create Origin Request Policy
-        id: create-origin-request-policy
-        run: |
-          origin_request_policy_id=$(aws cloudfront create-origin-request-policy --origin-request-policy-config '{
-            "Name": "MyOriginRequestPolicy",
-            "Comment": "Policy for S3 bucket",
-            "HeadersConfig": {
-              "HeaderBehavior": "none"
-            },
-            "CookiesConfig": {
-              "CookieBehavior": "none"
-            },
-            "QueryStringsConfig": {
-              "QueryStringBehavior": "none"
-            }
-          }' | jq -r '.OriginRequestPolicy.Id')
-          echo "origin_request_policy_id=$origin_request_policy_id" >> $GITHUB_ENV
-
-      - name: Create CloudFront distribution
-        run: |
-          bucket_name=${{ secrets.S3_BUCKET_NAME }}
-          cache_policy_id=${{ env.cache_policy_id }}
-          origin_request_policy_id=${{ env.origin_request_policy_id }}
-          cloudfront_config=$(cat <<-EOF
-          {
-            "CallerReference": "$(date +%s)",
-            "Comment": "CloudFront Distribution for S3 bucket",
-            "DefaultCacheBehavior": {
-              "TargetOriginId": "S3-${bucket_name}",
-              "ViewerProtocolPolicy": "redirect-to-https",
-              "AllowedMethods": {
-                "Quantity": 2,
-                "Items": ["GET", "HEAD"],
-                "CachedMethods": {
-                  "Quantity": 2,
-                  "Items": ["GET", "HEAD"]
-                }
-              },
-              "ForwardedValues": {
-                "QueryString": false,
-                "Cookies": {
-                  "Forward": "none"
-                }
-              },
-              "MinTTL": 0,
-              "DefaultTTL": 86400,
-              "MaxTTL": 31536000,
-              "CachePolicyId": "${cache_policy_id}",
-              "OriginRequestPolicyId": "${origin_request_policy_id}"
-            },
-            "Origins": {
-              "Quantity": 1,
-              "Items": [
-                {
-                  "Id": "S3-${bucket_name}",
-                  "DomainName": "${bucket_name}.s3.amazonaws.com",
-                  "S3OriginConfig": {
-                    "OriginAccessIdentity": ""
-                  }
-                }
-              ]
-            },
-            "Enabled": true
-          }
-          EOF
-          )
-          aws cloudfront create-distribution --distribution-config "$cloudfront_config"
+      - name: Buildout S3
+        run: terraform apply -auto-approve
