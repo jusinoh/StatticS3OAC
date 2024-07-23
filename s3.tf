@@ -4,10 +4,10 @@ provider "aws" {
 
 resource "aws_s3_bucket" "b" {
   bucket = "testtekbuckethaqui"
-  acl    = "public-read"
+  acl    = "private"
 }
 
-resource "aws_s3_bucket_website_configuration" "example" {
+resource "aws_s3_bucket_website_configuration" "tekb" {
   bucket = aws_s3_bucket.b.id
 
   index_document {
