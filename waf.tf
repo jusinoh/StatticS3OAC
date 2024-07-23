@@ -124,6 +124,6 @@ resource "aws_wafv2_web_acl" "tek-webacl" {
 }
 
 resource "aws_wafv2_web_acl_association" "tek-webacl-association" {
-  resource_arn = aws_cloudfront_distribution.s3_distribution
+  resource_arn = aws_cloudfront_distribution.s3_distribution.arn
   web_acl_arn  = aws_wafv2_web_acl.tek-webacl.arn
 }
