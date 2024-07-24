@@ -120,7 +120,7 @@ resource "aws_cloudfront_origin_access_identity" "origin_access_identity" {
 
 resource "aws_wafv2_web_acl" "tek-webacl" {
   name        = "TEKTest-webacl"
-  scope       = "REGIONAL"
+  scope       = "GLOBAL"
 
   default_action {
     allow {}
