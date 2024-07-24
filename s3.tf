@@ -12,14 +12,7 @@ resource "aws_s3_object" "object" {
   bucket = aws_s3_bucket.b.bucket
   key    = "index.html"
   source = "${path.module}/index.html"
-}
-
-resource "aws_s3_bucket_website_configuration" "tekb" {
-  bucket = aws_s3_bucket.b.id
-
-  index_document {
-    suffix = "index.html"
-  }
+  content_type = "text/html"
 }
 
 resource "aws_s3_bucket_policy" "b_policy" {
@@ -58,6 +51,7 @@ resource "aws_cloudfront_origin_access_control" "tek" {
 }
 
 resource "aws_cloudfront_distribution" "s3_distribution" {
+  web_acl_id = aws_wafv2_web_acl.tek-webacl.id
   origin {
     domain_name             = aws_s3_bucket.b.bucket_regional_domain_name
     origin_id               = local.s3_origin_id
