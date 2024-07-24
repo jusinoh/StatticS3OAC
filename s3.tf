@@ -20,6 +20,24 @@ resource "aws_s3_bucket_website_configuration" "tekb" {
   }
 }
 
+resource "aws_s3_bucket_policy" "b_policy" {
+  bucket = aws_s3_bucket.b.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${aws_cloudfront_origin_access_identity.origin_access_identity.id}"
+        }
+        Action = "s3:GetObject"
+        Resource = "${aws_s3_bucket.b.arn}/*"
+      }
+    ]
+  })
+}
+
 locals {
   s3_origin_id = "myS3Origin"
 }
