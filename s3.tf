@@ -2,6 +2,8 @@ provider "aws" {
   region = "us-east-1"
 }
 
+data "aws_caller_identity" "current" {}
+
 resource "aws_s3_bucket" "b" {
   bucket = "testtekbuckethaqui"
 }
@@ -24,15 +26,21 @@ resource "aws_s3_bucket_policy" "b_policy" {
   bucket = aws_s3_bucket.b.id
 
   policy = jsonencode({
-    Version = "2012-10-17"
+    Version = "2012-10-17",
     Statement = [
       {
-        Effect = "Allow"
+        Sid       = "AllowCloudFrontServicePrincipalReadOnly",
+        Effect    = "Allow",
         Principal = {
-          AWS = "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${aws_cloudfront_origin_access_identity.origin_access_identity.id}"
+          Service = "cloudfront.amazonaws.com"
+        },
+        Action    = "s3:GetObject",
+        Resource  = "${aws_s3_bucket.b.arn}/*",
+        Condition = {
+          StringEquals = {
+            "AWS:SourceArn" = "arn:aws:cloudfront::${data.aws_caller_identity.current.account_id}:distribution/${aws_cloudfront_distribution.s3_distribution.id}"
+          }
         }
-        Action = "s3:GetObject"
-        Resource = "${aws_s3_bucket.b.arn}/*"
       }
     ]
   })
@@ -42,16 +50,18 @@ locals {
   s3_origin_id = "myS3Origin"
 }
 
+resource "aws_cloudfront_origin_access_control" "tek" {
+  name                              = "tek-oac"
+  origin_access_control_origin_type = "s3"
+  signing_behavior                  = "always"
+  signing_protocol                  = "sigv4"
+}
+
 resource "aws_cloudfront_distribution" "s3_distribution" {
-
-  web_acl_id = aws_wafv2_web_acl.tek-webacl.arn
   origin {
-    domain_name = aws_s3_bucket.b.bucket_regional_domain_name
-    origin_id   = local.s3_origin_id
-
-    s3_origin_config {
-      origin_access_identity = aws_cloudfront_origin_access_identity.origin_access_identity.cloudfront_access_identity_path
-    }
+    domain_name             = aws_s3_bucket.b.bucket_regional_domain_name
+    origin_id               = local.s3_origin_id
+    origin_access_control_id = aws_cloudfront_origin_access_control.tek.id
   }
 
   enabled             = true
@@ -132,12 +142,8 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   }
 }
 
-resource "aws_cloudfront_origin_access_identity" "origin_access_identity" {
-  comment = "OAI for S3 bucket"
-}
-
 resource "aws_wafv2_web_acl" "tek-webacl" {
-  name        = "TEKTest-webacl"
+  name        = "TEK-webacl"
   scope       = "CLOUDFRONT"
 
   default_action {
